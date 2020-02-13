@@ -9,7 +9,7 @@ This is a Qt for Python (Pyside2) widget encapsulating a Voila application. It's
 ## Installation
 
 ```
-$ pip install git+https://github.com/luiztauffer/qtvoila.git
+$ pip install qtvoila
 ```
 
 ## Usage
