@@ -2,6 +2,8 @@
 
 A [Qt for Python](https://wiki.qt.io/Qt_for_Python) extension for [Voila](https://github.com/voila-dashboards/voila)!
 
+[![PyPI version](https://badge.fury.io/py/qtvoila.svg)](https://badge.fury.io/py/qtvoila)
+
 ## Introduction
 
 This is a Qt for Python (Pyside2) widget encapsulating a Voila application. It's a convenient way of embedding the awesomeness of Voila in your Qt applications.
