@@ -5,26 +5,22 @@ import numpy as np
 import tempfile
 import socket
 import psutil
-import shutil
 import os
 
 
 class QtVoila(QWebEngineView):
-    def __init__(self, parent=None, code_imports={}, code=""):
+    def __init__(self, parent=None, code_imports={}, code="", temp_dir=None):
         super().__init__()
         self.parent = parent
         # Temporary folder path
-        self.temp_dir = tempfile.mkdtemp()
+        if temp_dir is None:
+            self.temp_dir = tempfile.mkdtemp()
+        else:
+            self.temp_dir = temp_dir
         # User-provided code imports dictionary
         self.code_imports = code_imports
         # User provided code
         self.code = code
-
-    def close_renderer(self):
-        """Close current renderer"""
-        if hasattr(self, 'voilathread'):
-            # Stop Voila thread
-            self.voilathread.stop()
 
     def make_notebook_cell_code(self):
         """Makes the code to run on a Jupyter Notebook cell."""
@@ -57,13 +53,11 @@ class QtVoila(QWebEngineView):
         self.load(QtCore.QUrl(url))
         self.show()
 
-    def closeEvent(self, event):
-        """Before exiting, executes these actions."""
-        # Stop any current Voila thread
-        self.close_renderer()
-        # Remove any remaining temporary directory/files
-        shutil.rmtree(self.temp_dir, ignore_errors=False, onerror=None)
-        event.accept()
+    def close_renderer(self):
+        """Close current renderer"""
+        if hasattr(self, 'voilathread'):
+            # Stop Voila thread
+            self.voilathread.stop()
 
     def get_free_port(self):
         """Searches for a random free port number."""
@@ -96,8 +90,8 @@ class voilaThread(QtCore.QThread):
             if is_listening:
                 proc_list.append(child)
         for proc in proc_list:
-            for child in process.children(recursive=True):
-                child.kill()
+            if proc.status() != 'terminated':
+                proc.kill()
 
     def is_listening_to_port(self, process, port):
         is_listening = False
