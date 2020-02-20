@@ -84,25 +84,6 @@ class voilaThread(QtCore.QThread):
     def stop(self):
         pid = os.getpid()
         process = psutil.Process(pid)
-        proc_list = []
         for child in process.children(recursive=True):
-            is_listening = self.is_listening_to_port(child, self.port)
-            if is_listening:
-                proc_list.append(child)
-        for proc in proc_list:
-            if proc.status() != 'terminated':
-                proc.kill()
-
-    def is_listening_to_port(self, process, port):
-        is_listening = False
-        # iterate over processe's children
-        for child in process.children(recursive=True):
-            # iterate over child connections
-            for con in child.connections():
-                if con.status == 'LISTEN':
-                    if isinstance(con.laddr.port, int):
-                        is_listening = con.laddr.port == port
-                    elif isinstance(con.laddr.port, list):
-                        is_listening = port in con.laddr.port
-                    return is_listening
-        return is_listening
+            if child.status() != 'terminated':
+                child.kill()
