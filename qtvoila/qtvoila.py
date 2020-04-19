@@ -9,6 +9,9 @@ import os
 
 
 class QtVoila(QWebEngineView):
+    """
+    QtVoila - A Qt for Python extension for Voila!
+    """
     def __init__(self, parent=None, temp_dir=None,
                  external_notebook=None, strip_sources=True):
         super().__init__()
@@ -57,17 +60,17 @@ class QtVoila(QWebEngineView):
         """Set up notebook and run it with a dedicated Voila thread."""
         # Stop any current Voila thread
         self.close_renderer()
+        # Check for internal or external notebook
         if self.external_notebook is None:
             nbpath = os.path.join(self.temp_dir, 'temp_notebook.ipynb')
             nbf.write(self.internal_notebook, nbpath)
         else:
             nbpath = os.path.join(self.temp_dir, self.external_notebook)
         # Run instance of Voila with the just saved .ipynb file
-        port = self.get_free_port()
-        self.voilathread = voilaThread(parent=self, port=port, nbpath=nbpath)
+        self.voilathread = VoilaThread(parent=self, nbpath=nbpath)
         self.voilathread.start()
         # Load Voila instance on main Widget
-        self.update_html(url='http://localhost:'+str(port))
+        self.update_html(url='http://localhost:'+str(self.voilathread.port))
 
     def update_html(self, url):
         """Loads temporary HTML file and render it."""
@@ -80,6 +83,21 @@ class QtVoila(QWebEngineView):
             # Stop Voila thread
             self.voilathread.stop()
 
+
+class VoilaThread(QtCore.QThread):
+    def __init__(self, parent, nbpath, port=None):
+        super().__init__()
+        self.parent = parent
+        self.nbpath = nbpath
+        if port is None:
+            self.get_free_port()
+        else:
+            self.port = port
+
+    def run(self):
+        os.system("voila " + self.nbpath + " --no-browser --port " + str(self.port)
+                  + " --strip_sources=" + str(self.parent.strip_sources))
+
     def get_free_port(self):
         """Searches for a random free port number."""
         not_free = True
@@ -89,19 +107,7 @@ class QtVoila(QWebEngineView):
                 res = sock.connect_ex(('localhost', port))
                 if res != 0:
                     not_free = False
-        return port
-
-
-class voilaThread(QtCore.QThread):
-    def __init__(self, parent, port, nbpath):
-        super().__init__()
-        self.parent = parent
         self.port = port
-        self.nbpath = nbpath
-
-    def run(self):
-        os.system("voila " + self.nbpath + " --no-browser --port " + str(self.port)
-                  + " --strip_sources=" + str(self.parent.strip_sources))
 
     def stop(self):
         pid = os.getpid()
