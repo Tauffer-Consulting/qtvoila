@@ -9,7 +9,8 @@ import os
 
 
 class QtVoila(QWebEngineView):
-    def __init__(self, parent=None, code_imports={}, code="", temp_dir=None):
+    def __init__(self, parent=None, temp_dir=None,
+                 external_notebook=None, strip_sources=True):
         super().__init__()
         self.parent = parent
         # Temporary folder path
@@ -17,30 +18,50 @@ class QtVoila(QWebEngineView):
             self.temp_dir = tempfile.mkdtemp()
         else:
             self.temp_dir = temp_dir
-        # User-provided code imports dictionary
-        self.code_imports = code_imports
-        # User provided code
-        self.code = code
+        # Strip sources
+        self.strip_sources = strip_sources
+        # external_notebook option
+        self.external_notebook = external_notebook
+        # iternal_notebook option
+        self.internal_notebook = nbf.v4.new_notebook()
+        self.internal_notebook['cells'] = []
 
-    def make_notebook_cell_code(self):
-        """Makes the code to run on a Jupyter Notebook cell."""
+    def add_notebook_cell_code(self, code_imports={}, code="", cell_type='code'):
+        """
+        Adds new cell to run on a Jupyter Notebook.
+
+        Parameters:
+        -----------
+        code_imports: dict
+            Key:Value pairs containing modules to be imported in this cell.
+            Example: {'matplotlib': 'pyplot'}
+        code: string
+            String containing code to be run in this cell.
+            Example: "pyplot.plot([1, 2, 3], [10, 15, 13])"
+        cell_type: str
+            'code' or 'markdown'
+        """
         # Imports extension modules
         imports_code = ""
-        for k, v in self.code_imports.items():
+        for k, v in code_imports.items():
             imports_code += "from " + k + " import " + ", ".join(v) + "\n"
-        self.code = imports_code + self.code
+        code = imports_code + code
+        # Make notebook cell
+        if cell_type == 'code':
+            new_cell = nbf.v4.new_code_cell(code)
+        elif cell_type == 'markdown':
+            new_cell = nbf.v4.new_markdown_cell(code)
+        self.internal_notebook['cells'].append(new_cell)
 
     def run_voila(self):
         """Set up notebook and run it with a dedicated Voila thread."""
         # Stop any current Voila thread
         self.close_renderer()
-        # Make notebook code
-        self.make_notebook_cell_code()
-        # Write content to a .ipynb file
-        nb = nbf.v4.new_notebook()
-        nb['cells'] = [nbf.v4.new_code_cell(self.code)]
-        nbpath = os.path.join(self.temp_dir, 'temp_notebook.ipynb')
-        nbf.write(nb, nbpath)
+        if self.external_notebook is None:
+            nbpath = os.path.join(self.temp_dir, 'temp_notebook.ipynb')
+            nbf.write(self.internal_notebook, nbpath)
+        else:
+            nbpath = os.path.join(self.temp_dir, self.external_notebook)
         # Run instance of Voila with the just saved .ipynb file
         port = self.get_free_port()
         self.voilathread = voilaThread(parent=self, port=port, nbpath=nbpath)
@@ -79,7 +100,8 @@ class voilaThread(QtCore.QThread):
         self.nbpath = nbpath
 
     def run(self):
-        os.system("voila " + self.nbpath + " --no-browser --port "+str(self.port))
+        os.system("voila " + self.nbpath + " --no-browser --port " + str(self.port)
+                  + " --strip_sources=" + str(self.parent.strip_sources))
 
     def stop(self):
         pid = os.getpid()
