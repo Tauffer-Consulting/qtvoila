@@ -1,7 +1,7 @@
 from PySide2 import QtCore
 from PySide2.QtWidgets import (QApplication, QMainWindow, QPushButton, QWidget,
                                QVBoxLayout, QHBoxLayout, QSplitter, QTextEdit,
-                               QCheckBox, QRadioButton, QButtonGroup)
+                               QCheckBox, QRadioButton, QButtonGroup, QFileDialog)
 from qtvoila import QtVoila
 import sys
 
@@ -39,14 +39,12 @@ class MyApp(QMainWindow):
         self.hbox1.addWidget(self.r0)
         self.hbox1.addWidget(self.r1)
         self.edit1 = QTextEdit()
-        code1 = """
-            import matplotlib.pyplot as plt
+        code1 = """import matplotlib.pyplot as plt
             %matplotlib inline
 
             plt.figure()
             plt.plot([1,4,6,2,3], '-ok')
-            plt.show()
-        """
+            plt.show()"""
         self.edit1.insertPlainText(code1)
 
         self.r2 = QRadioButton("Code")
@@ -87,9 +85,12 @@ class MyApp(QMainWindow):
         layout_l1.addWidget(self.edit3)
 
         # Right side layout
+        self.button_load = QPushButton('Load external notebook')
+        self.button_load.clicked.connect(self.open_file)
         self.button_clear = QPushButton("Clear")
         self.button_clear.clicked.connect(self.clear)
         layout_r1 = QVBoxLayout()
+        layout_r1.addWidget(self.button_load)
         layout_r1.addWidget(self.button_clear)
         layout_r1.addWidget(self.voila_widget)
 
@@ -135,6 +136,14 @@ class MyApp(QMainWindow):
     def clear(self):
         self.voila_widget.internal_notebook['cells'] = []
         self.voila_widget.close_renderer()
+
+    def open_file(self):
+        """Opens notebook file."""
+        filename, _ = QFileDialog.getOpenFileName(None, 'Open file', '', "(*.ipynb)")
+        if filename is not None:
+            self.voila_widget.external_notebook = filename
+            self.clear()
+            self.voila_widget.run_voila()
 
 
 if __name__ == '__main__':
