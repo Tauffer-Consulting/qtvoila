@@ -73,7 +73,7 @@ class QtVoila(QWebEngineView):
         self.voilathread = VoilaThread(parent=self, nbpath=nbpath)
         self.voilathread.start()
         # Load Voila instance on main Widget
-        self.update_html(url='http://localhost:'+str(self.voilathread.port))
+        self.update_html(url='http://localhost:' + str(self.voilathread.port))
 
     def update_html(self, url):
         """Loads temporary HTML file and render it."""
