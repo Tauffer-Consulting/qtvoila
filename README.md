@@ -59,6 +59,10 @@ voila_widget.close_renderer()
 
 ## Examples
 
-[Here](https://github.com/luiztauffer/qtvoila/tree/master/examples) you can find examples on how to use QtVoila in your PySide2 application.
+[Here](https://github.com/luiztauffer/qtvoila/tree/master/examples) you can find some examples on how to use QtVoila in your PySide2 application. For example, creating notebooks from user's input and rendering them:
 
-![](assets/gif_matplotlib_example.gif)
+![](assets/gif_0.gif)
+
+To have your GUI importing existing notebooks and rendering them:
+
+![](assets/gif_1.gif)
