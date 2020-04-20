@@ -16,18 +16,35 @@ $ pip install qtvoila
 
 ## Usage
 
-QtVoila should be imported and used as a PySide2 widget:
+QtVoila should be imported and used as a PySide2 widget, anywhere inside your GUI application. Although it can be initialized with default parameters, you are able to define the **parent** (the PySide2 application), the **temporary directory** where any created notebooks will be temporarily stored, the path to an existing **external notebook** and the boolean option to either strip code sources on Voila rendering or not:
 
 ```python
 from qtvoila import QtVoila
 
-voila_widget = QtVoila()
+voila_widget = QtVoila(
+    parent=None,
+    temp_dir=None,
+    external_notebook=None,
+    strip_sources=True
+)
 ```
 
-To pass the Python code to be processed by Jupyter:
+If creating a notebook programmatically, new cells can be added with the method `add_notebook_cell()`. This method accepts three arguments: `code_imports` is a dictionary of modules to be imported, `code` is the string containing the cell's code or markdown text and `cell_type` defines if the cell is of type code or markdown. Examples:
+
 ```python
-code = "here goes your python code"
-voila_widget.code = code
+# Mardown cell
+mtext = "#This is my title\n"
+mtext += "Here goes some text. Check out this graphic:"
+voila_widget.add_notebook_cell(code=mtext, cell_type='markdown')
+
+# Code cell
+imports = {
+  'matplotlib': ['pyplot'],
+  'numpy': [],
+}
+code = "%matplotlib inline\n"
+code += "pyplot.plot(numpy.random.rand(10))"
+voila_widget.add_notebook_cell(code_imports=imports, code=code, cell_type='code')
 ```
 
 To run the Voila process and render the result on widget:
@@ -42,6 +59,6 @@ voila_widget.close_renderer()
 
 ## Examples
 
-Find the code for the example below at [examples](https://github.com/luiztauffer/qtvoila/tree/master/examples):
+[Here](https://github.com/luiztauffer/qtvoila/tree/master/examples) you can find examples on how to use QtVoila in your PySide2 application.
 
 ![](assets/gif_matplotlib_example.gif)

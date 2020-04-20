@@ -110,23 +110,24 @@ class MyApp(QMainWindow):
         self.show()
 
     def pass_code_to_voila_widget(self):
+        self.voila_widget.external_notebook = None
         code1 = self.edit1.toPlainText()
         if self.r0.isChecked():
-            self.voila_widget.add_notebook_cell_code(code=code1, cell_type='code')
+            self.voila_widget.add_notebook_cell(code=code1, cell_type='code')
         else:
-            self.voila_widget.add_notebook_cell_code(code=code1, cell_type='markdown')
+            self.voila_widget.add_notebook_cell(code=code1, cell_type='markdown')
 
         code2 = self.edit2.toPlainText()
         if self.r2.isChecked():
-            self.voila_widget.add_notebook_cell_code(code=code2, cell_type='code')
+            self.voila_widget.add_notebook_cell(code=code2, cell_type='code')
         else:
-            self.voila_widget.add_notebook_cell_code(code=code2, cell_type='markdown')
+            self.voila_widget.add_notebook_cell(code=code2, cell_type='markdown')
 
         code3 = self.edit3.toPlainText()
         if self.r4.isChecked():
-            self.voila_widget.add_notebook_cell_code(code=code3, cell_type='code')
+            self.voila_widget.add_notebook_cell(code=code3, cell_type='code')
         else:
-            self.voila_widget.add_notebook_cell_code(code=code3, cell_type='markdown')
+            self.voila_widget.add_notebook_cell(code=code3, cell_type='markdown')
         # Run Voila
         self.voila_widget.run_voila()
 

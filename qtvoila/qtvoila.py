@@ -29,7 +29,7 @@ class QtVoila(QWebEngineView):
         self.internal_notebook = nbf.v4.new_notebook()
         self.internal_notebook['cells'] = []
 
-    def add_notebook_cell_code(self, code_imports={}, code="", cell_type='code'):
+    def add_notebook_cell(self, code_imports={}, code="", cell_type='code'):
         """
         Adds new cell to run on a Jupyter Notebook.
 
@@ -47,7 +47,10 @@ class QtVoila(QWebEngineView):
         # Imports extension modules
         imports_code = ""
         for k, v in code_imports.items():
-            imports_code += "from " + k + " import " + ", ".join(v) + "\n"
+            if len(v) > 0:
+                imports_code += "from " + k + " import " + ", ".join(v) + "\n"
+            else:
+                imports_code += "import " + k + "\n"
         code = imports_code + code
         # Make notebook cell
         if cell_type == 'code':
