@@ -4,7 +4,7 @@
 
 A [Qt for Python](https://wiki.qt.io/Qt_for_Python) extension for [Voila](https://github.com/voila-dashboards/voila)!
 
-**QtVoila** a Qt for Python (Pyside2) widget that controls and renders a Voila application. It's a convenient way of embedding the awesomeness of Voila in your Qt applications.
+**QtVoila** a Qt for Python (PySide6) widget that controls and renders a Voila application. It's a convenient way of embedding the awesomeness of Voila in your Qt applications.
 
 The idea of the widget and implementation details are described in this [blog post](https://luiztauffer.github.io/guacamole-data-science/posts/2020-04-20-qtvoila/).
 
@@ -16,7 +16,7 @@ $ pip install qtvoila
 
 ## Usage
 
-QtVoila should be imported and used as a PySide2 widget, anywhere inside your GUI application. Although it can be initialized with default parameters, you are able to define the **parent** (the PySide2 application), the **temporary directory** where any created notebooks will be temporarily stored, the path to an existing **external notebook** and the boolean option to either strip code sources on Voila rendering or not:
+QtVoila should be imported and used as a PySide6 widget, anywhere inside your GUI application. Although it can be initialized with default parameters, you are able to define the **parent** (the PySide6 application), the **temporary directory** where any created notebooks will be temporarily stored, the path to an existing **external notebook** and the boolean option to either strip code sources on Voila rendering or not:
 
 ```python
 from qtvoila import QtVoila
@@ -59,7 +59,7 @@ voila_widget.close_renderer()
 
 ## Examples
 
-[Here](https://github.com/luiztauffer/qtvoila/tree/master/examples) you can find some examples on how to use QtVoila in your PySide2 application. For example, creating notebooks from user's input and rendering them:
+[Here](https://github.com/luiztauffer/qtvoila/tree/master/examples) you can find some examples on how to use QtVoila in your PySide6 application. For example, creating notebooks from user's input and rendering them:
 
 ![](assets/gif_0.gif)
 
