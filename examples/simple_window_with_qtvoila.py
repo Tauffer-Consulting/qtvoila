@@ -1,5 +1,5 @@
-from PySide2 import QtCore
-from PySide2.QtWidgets import (QApplication, QMainWindow, QPushButton, QWidget,
+from PySide6 import QtCore
+from PySide6.QtWidgets import (QApplication, QMainWindow, QPushButton, QWidget,
                                QVBoxLayout, QHBoxLayout, QSplitter, QTextEdit,
                                QCheckBox, QRadioButton, QButtonGroup, QFileDialog)
 from qtvoila import QtVoila
@@ -39,12 +39,13 @@ class MyApp(QMainWindow):
         self.hbox1.addWidget(self.r0)
         self.hbox1.addWidget(self.r1)
         self.edit1 = QTextEdit()
-        code1 = """import matplotlib.pyplot as plt
-            %matplotlib inline
+        code1 = """
+        import matplotlib.pyplot as plt
+        %matplotlib inline
 
-            plt.figure()
-            plt.plot([1,4,6,2,3], '-ok')
-            plt.show()"""
+        plt.figure()
+        plt.plot([1,4,6,2,3], '-ok')
+        plt.show()"""
         self.edit1.insertPlainText(code1)
 
         self.r2 = QRadioButton("Code")

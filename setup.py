@@ -5,7 +5,7 @@ from setuptools import setup, find_packages
 with open('README.md') as readme_file:
     readme = readme_file.read()
 
-requirements = ['PySide2', 'voila', 'numpy', 'psutil']
+requirements = ['PySide6', 'voila', 'numpy', 'psutil']
 
 setup_requirements = []
 

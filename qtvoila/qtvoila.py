@@ -1,12 +1,19 @@
-from PySide2 import QtCore
-from PySide2.QtWebEngineWidgets import QWebEngineView
+import sys
+import time
+from urllib.error import HTTPError, URLError
+from urllib.request import urlopen
+
+from PySide6 import QtCore
+from PySide6.QtWebEngineWidgets import QWebEngineView
 import nbformat as nbf
 import numpy as np
 import tempfile
 import socket
 import psutil
 import os
+from PySide6.QtCore import Signal
 
+os.environ['QTWEBENGINE_CHROMIUM_FLAGS'] = '--single-process'
 
 class QtVoila(QWebEngineView):
     """
@@ -71,9 +78,11 @@ class QtVoila(QWebEngineView):
             nbpath = os.path.join(self.temp_dir, self.external_notebook)
         # Run instance of Voila with the just saved .ipynb file
         self.voilathread = VoilaThread(parent=self, nbpath=nbpath)
+        self.voilathread.finished.connect(lambda: self.update_html(url='http://localhost:' + str(self.voilathread.port)))
         self.voilathread.start()
+
         # Load Voila instance on main Widget
-        self.update_html(url='http://localhost:' + str(self.voilathread.port))
+
 
     def update_html(self, url):
         """Loads temporary HTML file and render it."""
@@ -88,6 +97,7 @@ class QtVoila(QWebEngineView):
 
 
 class VoilaThread(QtCore.QThread):
+    finished=Signal()
     def __init__(self, parent, nbpath, port=None):
         super().__init__()
         self.parent = parent
@@ -98,8 +108,25 @@ class VoilaThread(QtCore.QThread):
             self.port = port
 
     def run(self):
-        os.system("voila " + self.nbpath + " --no-browser --port " + str(self.port)
-                  + " --strip_sources=" + str(self.parent.strip_sources))
+        self.voila_process = psutil.Popen([sys.executable,"-m","voila" , "--no-browser", "--port" , str(self.port)
+
+                  , "--strip_sources="+ str(self.parent.strip_sources), '"%s"' % self.nbpath ])
+        while True:
+
+            print('Waiting for voila to start up...')
+            time.sleep(1)
+
+            try:
+                result = urlopen('http://localhost:{0}'.format(self.port))
+                break
+            except HTTPError as e :
+                print(f'except {e}')
+                break
+            except URLError:
+                pass
+        print('ended')
+        self.finished.emit()
+
 
     def get_free_port(self):
         """Searches for a random free port number."""
@@ -113,8 +140,10 @@ class VoilaThread(QtCore.QThread):
         self.port = port
 
     def stop(self):
-        pid = os.getpid()
-        process = psutil.Process(pid)
-        for child in process.children(recursive=True):
-            if child.status() != 'terminated':
-                child.kill()
+        try:
+           self.voila_process.kill()
+           self.voila_process.wait()
+        except:
+            pass
+
+
