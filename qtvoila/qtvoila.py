@@ -68,7 +68,7 @@ class QtVoila(QWebEngineView):
 
     def save_notebook_as(self,filename):
         return nbf.write(self.internal_notebook,filename)
-    
+
     def run_voila(self):
         self.save_notebook_as(r'c:\temp\zz.ipynb')
         """Set up notebook and run it with a dedicated Voila thread."""
@@ -114,7 +114,7 @@ class VoilaThread(QtCore.QThread):
     def run(self):
         self.voila_process = psutil.Popen([sys.executable,"-m","voila" , "--no-browser", "--port" , str(self.port)
 
-                  , "--strip_sources="+ str(self.parent.strip_sources), '"%s"' % self.nbpath ])
+                  , "--strip_sources="+ str(self.parent.strip_sources), self.nbpath ])
         while True:
 
             print('Waiting for voila to start up...')
