@@ -35,6 +35,8 @@ class QtVoila(QWebEngineView):
         # iternal_notebook option
         self.internal_notebook = nbf.v4.new_notebook()
         self.internal_notebook['cells'] = []
+    def clear(self):
+        self.internal_notebook['cells'] = []
 
     def add_notebook_cell(self, code_imports={}, code="", cell_type='code'):
         """
@@ -75,18 +77,22 @@ class QtVoila(QWebEngineView):
         # Stop any current Voila thread
         self.close_renderer()
         # Check for internal or external notebook
+
         if self.external_notebook is None:
-            nbpath = os.path.join(self.temp_dir, 'temp_notebook.ipynb')
-            nbf.write(self.internal_notebook, nbpath)
+            self.nbpath = os.path.join(self.temp_dir, 'temp_notebook.ipynb')
+            nbf.write(self.internal_notebook, self.nbpath)
         else:
-            nbpath = os.path.join(self.temp_dir, self.external_notebook)
+            self.nbpath= self.external_notebook
         # Run instance of Voila with the just saved .ipynb file
-        self.voilathread = VoilaThread(parent=self, nbpath=nbpath)
+        self.voilathread = VoilaThread(parent=self, nbpath=self.nbpath)
         self.voilathread.finished.connect(lambda: self.update_html(url='http://localhost:' + str(self.voilathread.port)))
         self.voilathread.start()
 
         # Load Voila instance on main Widget
 
+    def refresh(self):
+        nbf.write(self.internal_notebook, self.nbpath)
+        self.reload()
 
     def update_html(self, url):
         """Loads temporary HTML file and render it."""
@@ -114,7 +120,7 @@ class VoilaThread(QtCore.QThread):
     def run(self):
         self.voila_process = psutil.Popen([sys.executable,"-m","voila" , "--no-browser", "--port" , str(self.port)
 
-                  , "--strip_sources="+ str(self.parent.strip_sources), self.nbpath ])
+                  , "--strip_sources="+ str(self.parent.strip_sources),'--VoilaConfiguration.show_tracebacks=True', self.nbpath ])
         while True:
 
             print('Waiting for voila to start up...')
@@ -144,9 +150,13 @@ class VoilaThread(QtCore.QThread):
         self.port = port
 
     def stop(self):
+
         try:
-           self.voila_process.kill()
-           self.voila_process.wait()
+            parent = self.voila_process
+            for child in parent.children(recursive=True):  # or parent.children() for recursive=False
+                child.kill()
+            parent.kill()
+            parent.wait()
         except:
             pass
 
