@@ -66,7 +66,11 @@ class QtVoila(QWebEngineView):
             new_cell = nbf.v4.new_markdown_cell(code)
         self.internal_notebook['cells'].append(new_cell)
 
+    def save_notebook_as(self,filename):
+        return nbf.write(self.internal_notebook,filename)
+    
     def run_voila(self):
+        self.save_notebook_as(r'c:\temp\zz.ipynb')
         """Set up notebook and run it with a dedicated Voila thread."""
         # Stop any current Voila thread
         self.close_renderer()
