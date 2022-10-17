@@ -1,1 +1,1 @@
-from .qtvoila import *
+from .qtvoila import QtVoila, VoilaThread
