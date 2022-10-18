@@ -85,8 +85,6 @@ class QtVoila(QWebEngineView):
         self.voilathread.finished.connect(lambda: self.update_html(url='http://localhost:' + str(self.voilathread.port)))
         self.voilathread.start()
 
-        # Load Voila instance on main Widget
-
     def refresh(self):
         nbf.write(self.internal_notebook, self.nbpath)
         self.reload()
