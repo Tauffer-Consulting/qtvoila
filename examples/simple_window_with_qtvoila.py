@@ -39,13 +39,12 @@ class MyApp(QMainWindow):
         self.hbox1.addWidget(self.r0)
         self.hbox1.addWidget(self.r1)
         self.edit1 = QTextEdit()
-        code1 = """
-        import matplotlib.pyplot as plt
-        %matplotlib inline
+        code1 = """import matplotlib.pyplot as plt
+%matplotlib inline
 
-        plt.figure()
-        plt.plot([1,4,6,2,3], '-ok')
-        plt.show()"""
+plt.figure()
+plt.plot([1,4,6,2,3], '-ok')
+plt.show()"""
         self.edit1.insertPlainText(code1)
 
         self.r2 = QRadioButton("Code")
@@ -69,11 +68,9 @@ class MyApp(QMainWindow):
         self.hbox3 = QHBoxLayout()
         self.hbox3.addWidget(self.r4)
         self.hbox3.addWidget(self.r5)
-        code3 = """
-            plt.figure()
-            plt.plot([8,6,7,7,0], '-or')
-            plt.show()
-        """
+        code3 = """plt.figure()
+plt.plot([8,6,7,7,0], '-or')
+plt.show()"""
         self.edit3 = QTextEdit(code3)
 
         layout_l1 = QVBoxLayout()
