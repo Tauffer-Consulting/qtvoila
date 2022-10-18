@@ -13,14 +13,15 @@ import psutil
 import os
 from PySide6.QtCore import Signal
 
+
 os.environ['QTWEBENGINE_CHROMIUM_FLAGS'] = '--single-process'
+
 
 class QtVoila(QWebEngineView):
     """
     QtVoila - A Qt for Python extension for Voila!
     """
-    def __init__(self, parent=None, temp_dir=None,
-                 external_notebook=None, strip_sources=True):
+    def __init__(self, parent=None, temp_dir=None, external_notebook=None, strip_sources=True):
         super().__init__()
         self.parent = parent
         # Temporary folder path
@@ -35,6 +36,7 @@ class QtVoila(QWebEngineView):
         # iternal_notebook option
         self.internal_notebook = nbf.v4.new_notebook()
         self.internal_notebook['cells'] = []
+
     def clear(self):
         self.internal_notebook['cells'] = []
 
@@ -68,16 +70,11 @@ class QtVoila(QWebEngineView):
             new_cell = nbf.v4.new_markdown_cell(code)
         self.internal_notebook['cells'].append(new_cell)
 
-    def save_notebook_as(self,filename):
-        return nbf.write(self.internal_notebook,filename)
-
     def run_voila(self):
-        self.save_notebook_as(r'c:\temp\zz.ipynb')
         """Set up notebook and run it with a dedicated Voila thread."""
         # Stop any current Voila thread
         self.close_renderer()
         # Check for internal or external notebook
-
         if self.external_notebook is None:
             self.nbpath = os.path.join(self.temp_dir, 'temp_notebook.ipynb')
             nbf.write(self.internal_notebook, self.nbpath)
@@ -118,14 +115,20 @@ class VoilaThread(QtCore.QThread):
             self.port = port
 
     def run(self):
-        self.voila_process = psutil.Popen([sys.executable,"-m","voila" , "--no-browser", "--port" , str(self.port)
-
-                  , "--strip_sources="+ str(self.parent.strip_sources),'--VoilaConfiguration.show_tracebacks=True', self.nbpath ])
+        self.voila_process = psutil.Popen([
+            sys.executable,
+            "-m",
+            "voila", 
+            "--no-browser", 
+            "--port", 
+            str(self.port), 
+            "--strip_sources="+ str(self.parent.strip_sources),
+            '--VoilaConfiguration.show_tracebacks=True', 
+            self.nbpath
+        ])
         while True:
-
             print('Waiting for voila to start up...')
             time.sleep(1)
-
             try:
                 result = urlopen('http://localhost:{0}'.format(self.port))
                 break
@@ -136,7 +139,6 @@ class VoilaThread(QtCore.QThread):
                 pass
         print('ended')
         self.finished.emit()
-
 
     def get_free_port(self):
         """Searches for a random free port number."""
@@ -150,7 +152,6 @@ class VoilaThread(QtCore.QThread):
         self.port = port
 
     def stop(self):
-
         try:
             parent = self.voila_process
             for child in parent.children(recursive=True):  # or parent.children() for recursive=False
