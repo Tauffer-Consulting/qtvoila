@@ -1,7 +1,5 @@
-import asyncio
 from enum import Enum
 import logging
-import subprocess
 import sys
 import time
 from urllib.error import HTTPError, URLError
@@ -23,16 +21,21 @@ class VoilaThreadStatus(Enum):
     OK=0
 
 
-
-
 class QtVoila(QWebEngineView):
     """
     QtVoila - A Qt for Python extension for Voila!
     """
     finished=Signal(int)
 
-    def __init__(self, parent=None, temp_dir=None,
-                 external_notebook=None, strip_sources=True,python_process_path=None,max_voila_wait=None):
+    def __init__(
+        self, 
+        parent=None, 
+        temp_dir=None,
+        external_notebook=None, 
+        strip_sources=True,
+        python_process_path=None,
+        max_voila_wait:int = 20
+    ):
         super().__init__()
         self.parent = parent
         # Temporary folder path
@@ -48,7 +51,8 @@ class QtVoila(QWebEngineView):
         self.internal_notebook = nbf.v4.new_notebook()
         self.internal_notebook['cells'] = []
         self.python_process_path=python_process_path
-        self.max_voila_wait=max_voila_wait
+        self.max_voila_wait=int(max_voila_wait)
+
     def clear(self):
         self.internal_notebook['cells'] = []
 
@@ -102,14 +106,14 @@ class QtVoila(QWebEngineView):
         else:
             self.nbpath= self.external_notebook
         # Run instance of Voila with the just saved .ipynb file
-        self.voilathread = VoilaThread(parent=self, nbpath=self.nbpath,python_process_path=self.python_process_path,max_voila_wait=self.max_voila_wait)
+        self.voilathread = VoilaThread(
+            parent=self, 
+            nbpath=self.nbpath,
+            python_process_path=self.python_process_path,
+            max_voila_wait=self.max_voila_wait
+        )
         self.voilathread.onfinished.connect(self.on_finish)
         self.voilathread.start()
-
-        # Load Voila instance on main Widget
-
-
-
 
     def refresh(self):
         nbf.write(self.internal_notebook, self.nbpath)
@@ -130,8 +134,10 @@ class QtVoila(QWebEngineView):
 
 
 class VoilaThread(QtCore.QThread):
+    
     onfinished=Signal(VoilaThreadStatus)
-    def __init__(self, parent, nbpath, port=None,python_process_path=None,max_voila_wait=None):
+    
+    def __init__(self, parent, nbpath, port=None, python_process_path=None, max_voila_wait:int = 20):
         super().__init__()
         self.parent = parent
         self.nbpath = nbpath
@@ -146,10 +152,18 @@ class VoilaThread(QtCore.QThread):
     def run(self):
         if self.python_process_path is None:
             self.python_process_path= sys.executable
-        self.voila_process = psutil.Popen([self.python_process_path,"-m","voila" , "--no-browser", "--port" , str(self.port)
-                  , "--strip_sources="+ str(self.parent.strip_sources),'--VoilaConfiguration.show_tracebacks=True', self.nbpath ])
+        
+        self.voila_process = psutil.Popen([
+            self.python_process_path,
+            "-m","voila", 
+            "--no-browser", 
+            "--port" , str(self.port),
+            "--strip_sources="+ str(self.parent.strip_sources),
+            '--VoilaConfiguration.show_tracebacks=True', 
+            self.nbpath
+        ])
+        
         for k in range(self.max_voila_wait*20):
-
             logging.debug(('Waiting for voila to start up...'))
             time.sleep(1/20)
 
@@ -168,9 +182,6 @@ class VoilaThread(QtCore.QThread):
             return
         logging.debug(('ended'))
         self.onfinished.emit(VoilaThreadStatus.OK)
-
-
-
 
     def get_free_port(self):
         """Searches for a random free port number."""
