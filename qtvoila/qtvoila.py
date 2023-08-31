@@ -1,4 +1,5 @@
 import asyncio
+from enum import Enum
 import logging
 import subprocess
 import sys
@@ -15,6 +16,13 @@ import socket
 import psutil
 import os
 from PySide6.QtCore import Signal
+
+
+class VoilaThreadStatus(Enum):
+    Bad=-1 
+    OK=0
+
+
 
 
 class QtVoila(QWebEngineView):
@@ -78,7 +86,7 @@ class QtVoila(QWebEngineView):
         return nbf.write(self.internal_notebook,filename)
 
     def on_finish(self,x):
-        if x==0:
+        if x==VoilaThreadStatus.OK:
             self.update_html(url='http://localhost:' + str(self.voilathread.port))
         self.finished.emit(x)
 
@@ -122,7 +130,7 @@ class QtVoila(QWebEngineView):
 
 
 class VoilaThread(QtCore.QThread):
-    onfinished=Signal(int)
+    onfinished=Signal(VoilaThreadStatus)
     def __init__(self, parent, nbpath, port=None,python_process_path=None,max_voila_wait=None):
         super().__init__()
         self.parent = parent
@@ -136,8 +144,6 @@ class VoilaThread(QtCore.QThread):
             self.port = port
 
     def run(self):
-        async def temp():
-            await asyncio.wait_for(self.voila_process.stderr.readline(), 1)
         if self.python_process_path is None:
             self.python_process_path= sys.executable
         self.voila_process = psutil.Popen([self.python_process_path,"-m","voila" , "--no-browser", "--port" , str(self.port)
@@ -145,7 +151,7 @@ class VoilaThread(QtCore.QThread):
         for k in range(self.max_voila_wait*20):
 
             logging.debug(('Waiting for voila to start up...'))
-            time.sleep(4/20)
+            time.sleep(1/20)
 
             try:
                 result = urlopen('http://localhost:{0}'.format(self.port))
@@ -158,10 +164,10 @@ class VoilaThread(QtCore.QThread):
             except:
                 pass
         else:
-            self.onfinished.emit(-1)
+            self.onfinished.emit(VoilaThreadStatus.Bad)
             return
         logging.debug(('ended'))
-        self.onfinished.emit(0)
+        self.onfinished.emit(VoilaThreadStatus.OK)
 
 
 
