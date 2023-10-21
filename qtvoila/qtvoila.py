@@ -1,3 +1,5 @@
+import asyncio
+import multiprocessing
 from enum import Enum
 import logging
 import sys
@@ -14,6 +16,8 @@ import socket
 import psutil
 import os
 from PySide6.QtCore import Signal
+from voila.app import Voila
+from voila.configuration import VoilaConfiguration
 
 
 class VoilaThreadStatus(Enum):
@@ -116,7 +120,8 @@ class QtVoila(QWebEngineView):
         self.voilathread.start()
 
     def refresh(self):
-        nbf.write(self.internal_notebook, self.nbpath)
+        if self.external_notebook is None:
+            nbf.write(self.internal_notebook, self.nbpath)
         self.reload()
 
     def update_html(self, url):
@@ -148,21 +153,20 @@ class VoilaThread(QtCore.QThread):
             self.get_free_port()
         else:
             self.port = port
+    @staticmethod
+    def internal_run_voila(nb,port,strip_sources):
+        v = Voila(tornado_settings={'disable_check_xsrf': True,'allow_origin': '*'},
+                  notebook_path=nb,port=port)
+        config = VoilaConfiguration(strip_sources=strip_sources,show_tracebacks=True)
+        v.voila_configuration = config
+        v.setup_template_dirs()
+        v.open_browser = False
+        v.start()
 
     def run(self):
-        if self.python_process_path is None:
-            self.python_process_path= sys.executable
-        
-        self.voila_process = psutil.Popen([
-            self.python_process_path,
-            "-m","voila", 
-            "--no-browser", 
-            "--port" , str(self.port),
-            "--strip_sources="+ str(self.parent.strip_sources),
-            '--VoilaConfiguration.show_tracebacks=True', 
-            self.nbpath
-        ])
-        
+        self.voila_process=multiprocessing.Pool(1).apply_async(VoilaThread.internal_run_voila, (self.nbpath,self.port,self.parent.strip_sources))
+
+
         for k in range(self.max_voila_wait*20):
             logging.debug(('Waiting for voila to start up...'))
             time.sleep(1/20)
@@ -195,15 +199,8 @@ class VoilaThread(QtCore.QThread):
         self.port = port
 
     def stop(self):
-        logging.debug('stoping voila process')
-
+        logging.debug('stopping voila process')
         try:
-            parent = self.voila_process
-            for child in parent.children(recursive=True):  # or parent.children() for recursive=False
-                child.kill()
-            parent.kill()
-            parent.wait()
+            self.voila_process._pool.terminate()
         except:
             pass
-
-
