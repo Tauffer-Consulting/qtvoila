@@ -199,7 +199,7 @@ class VoilaThread(QtCore.QThread):
         self.port = port
 
     def stop(self):
-        logging.debug('stoppsing voila process')
+        logging.debug('stopping voila process')
         try:
             self.voila_process._pool.terminate()
         except:
