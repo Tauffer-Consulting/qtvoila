@@ -12,8 +12,10 @@ setup_requirements = []
 test_requirements = []
 
 setup(
+    version='2.2.0',
     author="Luiz Tauffer",
     author_email='luiz@taufferconsulting.com',
+    url='https://github.com/Tauffer-Consulting/qtvoila',
     python_requires='>=3.5',
     classifiers=[
         'Intended Audience :: Developers',
@@ -34,7 +36,5 @@ setup(
     setup_requires=setup_requirements,
     test_suite='tests',
     tests_require=test_requirements,
-    url='https://github.com/luiztauffer/qtvoila',
-    version='2.1.0',
     zip_safe=False,
 )
