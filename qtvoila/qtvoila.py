@@ -1,4 +1,5 @@
 import multiprocessing
+import subprocess
 from enum import Enum
 import logging
 import time
@@ -163,14 +164,41 @@ class VoilaThread(QtCore.QThread):
         v.open_browser = False
         v.start()
 
+    def _spawn_voila_subprocess(self):
+        cmd = [
+            self.python_process_path, '-m', 'voila',
+            self.nbpath,
+            '--port', str(self.port),
+            '--no-browser',
+            f'--VoilaConfiguration.strip_sources={bool(self.parent.strip_sources)}',
+            '--Voila.tornado_settings={"disable_check_xsrf": True, "allow_origin": "*"}',
+            '--VoilaConfiguration.show_tracebacks=True',
+        ]
+        logging.info(f'launching voila via subprocess: {cmd}')
+        self.voila_subprocess = subprocess.Popen(cmd)
+        self.voila_process = None
+
+    def _subprocess_alive(self):
+        sp = getattr(self, 'voila_subprocess', None)
+        return sp is not None and sp.poll() is None
+
     def run(self):
-        self.voila_process = multiprocessing.Pool(1).apply_async(
-            VoilaThread.internal_run_voila, 
-            (self.nbpath, self.port, self.parent.strip_sources)
-        )
+        if self.python_process_path:
+            self._spawn_voila_subprocess()
+        else:
+            self.voila_subprocess = None
+            self.voila_process = multiprocessing.Pool(1).apply_async(
+                VoilaThread.internal_run_voila,
+                (self.nbpath, self.port, self.parent.strip_sources)
+            )
         for k in range(self.max_voila_wait*20):
             logging.debug(('Waiting for voila to start up...'))
             time.sleep(1/20)
+            if self.python_process_path and not self._subprocess_alive():
+                rc = self.voila_subprocess.returncode
+                logging.error(f'voila subprocess exited early with code {rc}')
+                self.onfinished.emit(VoilaThreadStatus.Bad)
+                return
             try:
                 _ = urlopen('http://localhost:{0}'.format(self.port))
                 break
@@ -200,6 +228,16 @@ class VoilaThread(QtCore.QThread):
 
     def stop(self):
         logging.debug('stopping voila process')
+        if getattr(self, 'voila_subprocess', None) is not None:
+            try:
+                self.voila_subprocess.terminate()
+                try:
+                    self.voila_subprocess.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    self.voila_subprocess.kill()
+            except Exception as e:
+                logging.error(f'error terminating voila subprocess: {e}')
+            return
         try:
             self.voila_process._pool.terminate()
         except:

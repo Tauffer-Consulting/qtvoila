@@ -19,6 +19,12 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("notebook")
     parser.add_argument("--wait", type=int, default=30)
+    parser.add_argument(
+        "--python-process-path",
+        default=None,
+        help="path to a python interpreter; when set, voila runs as a subprocess "
+             "instead of via multiprocessing (use sys.executable for current env)",
+    )
     args = parser.parse_args()
 
     if not os.path.isfile(args.notebook):
@@ -28,7 +34,11 @@ def main():
 
     app = QApplication.instance() or QApplication(sys.argv)
 
-    qtvoila = QtVoila(external_notebook=args.notebook, max_voila_wait=args.wait)
+    qtvoila = QtVoila(
+        external_notebook=args.notebook,
+        max_voila_wait=args.wait,
+        python_process_path=args.python_process_path,
+    )
 
     dialog = QDialog()
     dialog.setWindowTitle(f"QtVoila: {os.path.basename(args.notebook)}")
