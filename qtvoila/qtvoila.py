@@ -14,8 +14,6 @@ import tempfile
 import socket
 import os
 from PySide6.QtCore import Signal
-from voila.app import Voila
-from voila.configuration import VoilaConfiguration
 
 
 class VoilaThreadStatus(Enum):
@@ -153,6 +151,8 @@ class VoilaThread(QtCore.QThread):
 
     @staticmethod
     def internal_run_voila(nb, port, strip_sources):
+        from voila.configuration import VoilaConfiguration
+        from voila.app import Voila
         v = Voila(
             tornado_settings={'disable_check_xsrf': True, 'allow_origin': '*'},
             notebook_path=nb,
