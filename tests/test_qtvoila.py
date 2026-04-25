@@ -1,15 +1,60 @@
 #!/usr/bin/env python
+"""Standalone smoke test for qtvoila.
 
-"""Tests for `qtvoila` package."""
+Loads a notebook with QtVoila in a Qt window.
+
+Usage:
+    python test_qtvoila.py path/to/notebook.ipynb
+"""
+import argparse
+import logging
+import os
+import sys
+
+from PySide6.QtWidgets import QApplication, QDialog, QPushButton, QVBoxLayout
+from qtvoila import QtVoila
 
 
-import unittest
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("notebook")
+    parser.add_argument("--wait", type=int, default=30)
+    parser.add_argument(
+        "--python-process-path",
+        default=None,
+        help="path to a python interpreter; when set, voila runs as a subprocess "
+             "instead of via multiprocessing (use sys.executable for current env)",
+    )
+    args = parser.parse_args()
 
-from qtvoila import qtvoila
+    if not os.path.isfile(args.notebook):
+        sys.exit(f"notebook not found: {args.notebook}")
+
+    logging.basicConfig(level=logging.DEBUG)
+
+    app = QApplication.instance() or QApplication(sys.argv)
+
+    qtvoila = QtVoila(
+        external_notebook=args.notebook,
+        max_voila_wait=args.wait,
+        python_process_path=args.python_process_path,
+    )
+
+    dialog = QDialog()
+    dialog.setWindowTitle(f"QtVoila: {os.path.basename(args.notebook)}")
+    dialog.setMinimumSize(1000, 600)
+    layout = QVBoxLayout(dialog)
+    layout.addWidget(qtvoila)
+    close = QPushButton("Close", dialog)
+    close.pressed.connect(dialog.close)
+    layout.addWidget(close)
+
+    qtvoila.run_voila()
+    try:
+        dialog.exec()
+    finally:
+        qtvoila.close_renderer()
 
 
-class TestQtvoila(unittest.TestCase):
-    """Tests for `qtvoila` package."""
-
-    def test_000_something(self):
-        """Test something."""
+if __name__ == "__main__":
+    main()

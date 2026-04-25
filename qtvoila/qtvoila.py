@@ -1,6 +1,7 @@
+import multiprocessing
+import subprocess
 from enum import Enum
 import logging
-import sys
 import time
 from urllib.error import HTTPError, URLError
 from urllib.request import urlopen
@@ -11,30 +12,29 @@ import nbformat as nbf
 import numpy as np
 import tempfile
 import socket
-import psutil
 import os
 from PySide6.QtCore import Signal
 
 
 class VoilaThreadStatus(Enum):
-    Bad=-1 
-    OK=0
+    Bad = -1
+    OK = 0
 
 
 class QtVoila(QWebEngineView):
     """
     QtVoila - A Qt for Python extension for Voila!
     """
-    finished=Signal(int)
+    finished = Signal(int)
 
     def __init__(
-        self, 
-        parent=None, 
+        self,
+        parent=None,
         temp_dir=None,
-        external_notebook=None, 
+        external_notebook=None,
         strip_sources=True,
         python_process_path=None,
-        max_voila_wait:int = 20
+        max_voila_wait: int = 20
     ):
         super().__init__()
         self.parent = parent
@@ -50,8 +50,8 @@ class QtVoila(QWebEngineView):
         # iternal_notebook option
         self.internal_notebook = nbf.v4.new_notebook()
         self.internal_notebook['cells'] = []
-        self.python_process_path=python_process_path
-        self.max_voila_wait=int(max_voila_wait)
+        self.python_process_path = python_process_path
+        self.max_voila_wait = int(max_voila_wait)
 
     def clear(self):
         self.internal_notebook['cells'] = []
@@ -86,11 +86,11 @@ class QtVoila(QWebEngineView):
             new_cell = nbf.v4.new_markdown_cell(code)
         self.internal_notebook['cells'].append(new_cell)
 
-    def save_notebook_as(self,filename):
-        return nbf.write(self.internal_notebook,filename)
+    def save_notebook_as(self, filename):
+        return nbf.write(self.internal_notebook, filename)
 
-    def on_finish(self,x):
-        if x==VoilaThreadStatus.OK:
+    def on_finish(self, x):
+        if x == VoilaThreadStatus.OK:
             self.update_html(url='http://localhost:' + str(self.voilathread.port))
         self.finished.emit(x)
 
@@ -104,7 +104,7 @@ class QtVoila(QWebEngineView):
             self.nbpath = os.path.join(self.temp_dir, 'temp_notebook.ipynb')
             nbf.write(self.internal_notebook, self.nbpath)
         else:
-            self.nbpath= self.external_notebook
+            self.nbpath = self.external_notebook
         # Run instance of Voila with the just saved .ipynb file
         self.voilathread = VoilaThread(
             parent=self, 
@@ -116,7 +116,8 @@ class QtVoila(QWebEngineView):
         self.voilathread.start()
 
     def refresh(self):
-        nbf.write(self.internal_notebook, self.nbpath)
+        if self.external_notebook is None:
+            nbf.write(self.internal_notebook, self.nbpath)
         self.reload()
 
     def update_html(self, url):
@@ -134,41 +135,72 @@ class QtVoila(QWebEngineView):
 
 
 class VoilaThread(QtCore.QThread):
-    
-    onfinished=Signal(VoilaThreadStatus)
-    
-    def __init__(self, parent, nbpath, port=None, python_process_path=None, max_voila_wait:int = 20):
+
+    onfinished = Signal(VoilaThreadStatus)
+
+    def __init__(self, parent, nbpath, port=None, python_process_path=None, max_voila_wait: int = 20):
         super().__init__()
         self.parent = parent
         self.nbpath = nbpath
-        self.python_process_path=python_process_path
-        self.max_voila_wait=max_voila_wait
-
+        self.python_process_path = python_process_path
+        self.max_voila_wait = max_voila_wait
         if port is None:
             self.get_free_port()
         else:
             self.port = port
 
+    @staticmethod
+    def internal_run_voila(nb, port, strip_sources):
+        from voila.configuration import VoilaConfiguration
+        from voila.app import Voila
+        v = Voila(
+            tornado_settings={'disable_check_xsrf': True, 'allow_origin': '*'},
+            notebook_path=nb,
+            port=port
+        )
+        config = VoilaConfiguration(strip_sources=strip_sources, show_tracebacks=True)
+        v.voila_configuration = config
+        v.setup_template_dirs()
+        v.open_browser = False
+        v.start()
+
+    def _spawn_voila_subprocess(self):
+        cmd = [
+            self.python_process_path, '-m', 'voila',
+            self.nbpath,
+            '--port', str(self.port),
+            '--no-browser',
+            f'--VoilaConfiguration.strip_sources={bool(self.parent.strip_sources)}',
+            '--Voila.tornado_settings={"disable_check_xsrf": True, "allow_origin": "*"}',
+            '--VoilaConfiguration.show_tracebacks=True',
+        ]
+        logging.info(f'launching voila via subprocess: {cmd}')
+        self.voila_subprocess = subprocess.Popen(cmd)
+        self.voila_process = None
+
+    def _subprocess_alive(self):
+        sp = getattr(self, 'voila_subprocess', None)
+        return sp is not None and sp.poll() is None
+
     def run(self):
-        if self.python_process_path is None:
-            self.python_process_path= sys.executable
-        
-        self.voila_process = psutil.Popen([
-            self.python_process_path,
-            "-m","voila", 
-            "--no-browser", 
-            "--port" , str(self.port),
-            "--strip_sources="+ str(self.parent.strip_sources),
-            '--VoilaConfiguration.show_tracebacks=True', 
-            self.nbpath
-        ])
-        
+        if self.python_process_path:
+            self._spawn_voila_subprocess()
+        else:
+            self.voila_subprocess = None
+            self.voila_process = multiprocessing.Pool(1).apply_async(
+                VoilaThread.internal_run_voila,
+                (self.nbpath, self.port, self.parent.strip_sources)
+            )
         for k in range(self.max_voila_wait*20):
             logging.debug(('Waiting for voila to start up...'))
             time.sleep(1/20)
-
+            if self.python_process_path and not self._subprocess_alive():
+                rc = self.voila_subprocess.returncode
+                logging.error(f'voila subprocess exited early with code {rc}')
+                self.onfinished.emit(VoilaThreadStatus.Bad)
+                return
             try:
-                result = urlopen('http://localhost:{0}'.format(self.port))
+                _ = urlopen('http://localhost:{0}'.format(self.port))
                 break
             except HTTPError as e :
                 logging.error((f'exception in voila {e}'))
@@ -195,15 +227,18 @@ class VoilaThread(QtCore.QThread):
         self.port = port
 
     def stop(self):
-        logging.debug('stoping voila process')
-
+        logging.debug('stopping voila process')
+        if getattr(self, 'voila_subprocess', None) is not None:
+            try:
+                self.voila_subprocess.terminate()
+                try:
+                    self.voila_subprocess.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    self.voila_subprocess.kill()
+            except Exception as e:
+                logging.error(f'error terminating voila subprocess: {e}')
+            return
         try:
-            parent = self.voila_process
-            for child in parent.children(recursive=True):  # or parent.children() for recursive=False
-                child.kill()
-            parent.kill()
-            parent.wait()
+            self.voila_process._pool.terminate()
         except:
             pass
-
-
